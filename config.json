@@ -1,4 +1,12 @@
 {
-
-  "access_token": ""
+  "second_delay_between_request": {
+    "from": 1,
+    "to": 5
+  },
+  "write_user_limit_per_one_account": 5,
+  "manager_url": "https://vk.com/some_user_id",
+  "groups": [
+    "https://vk.com/spbrabota",
+    ""
+  ]
 }

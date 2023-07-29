@@ -1,0 +1,55 @@
+{
+  "searchers": [
+    {
+      "login": "",
+      "password": "",
+      "proxy_ip": "",
+      "proxy_port": "",
+      "proxy_login": "",
+      "proxy_pass": ""
+  }
+  ],
+  "writers": [
+    {
+      "login": "",
+      "password": "",
+      "proxy_ip": "",
+      "proxy_port": "",
+      "proxy_login": "",
+      "proxy_pass": ""
+    },
+    {
+      "login": "",
+      "password": "",
+      "proxy_ip": "",
+      "proxy_port": "",
+      "proxy_login": "",
+      "proxy_pass": ""
+    },
+    {
+      "login": "",
+      "password": "",
+      "proxy_ip": "",
+      "proxy_port": "",
+      "proxy_login": "",
+      "proxy_pass": ""
+    },
+    {
+      "login": "",
+      "password": "",
+      "proxy_ip": "",
+      "proxy_port": "",
+      "proxy_login": "",
+      "proxy_pass": ""
+    },
+    {
+      "login": "",
+      "password": "",
+      "proxy_ip": "",
+      "proxy_port": "",
+      "proxy_login": "",
+      "proxy_pass": ""
+    }
+  ]
+
+}
