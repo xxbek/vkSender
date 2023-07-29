@@ -3,53 +3,76 @@
     {
       "login": "",
       "password": "",
-      "proxy_ip": "",
-      "proxy_port": "",
-      "proxy_login": "",
-      "proxy_pass": ""
-  }
+      "proxy": {
+        "proxy_ip": "",
+        "proxy_port": "",
+        "proxy_login": "",
+        "proxy_pass": ""
+      },
+      "is_blocked": false,
+      "access_token": ""
+    }
   ],
   "writers": [
     {
       "login": "",
       "password": "",
-      "proxy_ip": "",
-      "proxy_port": "",
-      "proxy_login": "",
-      "proxy_pass": ""
+      "proxy": {
+        "proxy_ip": "",
+        "proxy_port": "",
+        "proxy_login": "",
+        "proxy_pass": ""
+      },
+      "is_blocked": false,
+      "access_token": null
     },
     {
       "login": "",
       "password": "",
-      "proxy_ip": "",
-      "proxy_port": "",
-      "proxy_login": "",
-      "proxy_pass": ""
+      "proxy": {
+        "proxy_ip": "",
+        "proxy_port": "",
+        "proxy_login": "",
+        "proxy_pass": ""
+      },
+      "is_blocked": false,
+      "access_token": null
     },
     {
       "login": "",
       "password": "",
-      "proxy_ip": "",
-      "proxy_port": "",
-      "proxy_login": "",
-      "proxy_pass": ""
+      "proxy": {
+        "proxy_ip": "",
+        "proxy_port": "",
+        "proxy_login": "",
+        "proxy_pass": ""
+      },
+      "is_blocked": false,
+      "access_token": null
     },
     {
       "login": "",
       "password": "",
-      "proxy_ip": "",
-      "proxy_port": "",
-      "proxy_login": "",
-      "proxy_pass": ""
+      "proxy": {
+        "proxy_ip": "",
+        "proxy_port": "",
+        "proxy_login": "",
+        "proxy_pass": ""
+      },
+      "is_blocked": false,
+      "access_token": null
     },
     {
       "login": "",
       "password": "",
-      "proxy_ip": "",
-      "proxy_port": "",
-      "proxy_login": "",
-      "proxy_pass": ""
+      "proxy": {
+        "proxy_ip": "",
+        "proxy_port": "",
+        "proxy_login": "",
+        "proxy_pass": ""
+      },
+      "is_blocked": false,
+      "access_token": null
     }
   ]
-
 }

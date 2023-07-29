@@ -22,3 +22,5 @@ alembic revision --autogenerate -m "first migrations"
 alembic upgrade heads
 
 
+-- Отключить двухфакторную аутентификацию
+

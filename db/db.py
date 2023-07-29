@@ -1,9 +1,8 @@
 import logging
 import sqlalchemy
-from sqlalchemy import text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
-from models import User
+from db.models import User
 
 DB_FILENAME = "db.sqlite"
 
