@@ -38,6 +38,11 @@ class DBAccess:
             session.commit()
             logging.info(f"Пользователь `{vk_id}: {first_name} {last_name}` добавлен в базу")
 
+    def add_users(self, users: list[User]):
+        with self._session as session:
+            session.add_all(users)
+            session.commit()
+
     def is_user_in_db(self, vk_id: str) -> bool:
         with self._session as session:
             user = session.query(User).filter(User.vk_id == vk_id)
@@ -60,6 +65,10 @@ class DBAccess:
         with self._session as session:
             users = session.query(User).all()
         return users
+
+    def create_model_from_dict(self, vk_users: dict) -> list[User]:
+        print(vk_users)
+
 
 
 

@@ -23,7 +23,7 @@
         "proxy_login": "",
         "proxy_pass": ""
       },
-      "is_blocked": false,
+      "is_blocked": true,
       "access_token": null
     },
     {
@@ -35,7 +35,7 @@
         "proxy_login": "",
         "proxy_pass": ""
       },
-      "is_blocked": false,
+      "is_blocked": true,
       "access_token": null
     },
     {
@@ -47,7 +47,7 @@
         "proxy_login": "",
         "proxy_pass": ""
       },
-      "is_blocked": false,
+      "is_blocked": true,
       "access_token": null
     },
     {
@@ -59,7 +59,7 @@
         "proxy_login": "",
         "proxy_pass": ""
       },
-      "is_blocked": false,
+      "is_blocked": true,
       "access_token": null
     },
     {
@@ -71,7 +71,7 @@
         "proxy_login": "",
         "proxy_pass": ""
       },
-      "is_blocked": false,
+      "is_blocked": true,
       "access_token": null
     }
   ]

@@ -1,12 +1,11 @@
 {
-  "second_delay_between_request": {
-    "from": 1,
-    "to": 5
-  },
+  "second_delay_between_request": 10,
   "write_user_limit_per_one_account": 5,
   "manager_url": "https://vk.com/some_user_id",
+  "monitoring_start_date": "30.07.1999",
+  "monitoring_frequency": 1,
   "groups": [
-    "https://vk.com/spbrabota",
+    "vachtoviki",
     ""
   ]
 }
