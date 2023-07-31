@@ -15,10 +15,7 @@ class Account:
         self.is_authenticated = True if self.access_token else False
         self.is_blocked = is_blocked
 
-        if self.access_token is None and self.is_blocked is False:
-            self.access_token = self._get_access_token_from_vk()
-
-    def _get_access_token_from_vk(self):
+    def set_access_token_from_vk(self):
         """
         Получение токена через логин и пароль.
         У пользователя должна отсутствовать двухфактораня аутентификация, иначе требуется
@@ -33,7 +30,8 @@ class Account:
 
         except vk_api.AuthError as error_msg:
             logging.error(f"Ошибка при авторизации аккаунта: {error_msg}")
-            return access_token
+            self.access_token = access_token
+            return
 
         try:
             user = account_api.users.get()
@@ -48,7 +46,7 @@ class Account:
                     access_token = data[self.login]['token'][xxx][yyy]['access_token']
             os.remove('vk_config.v2.json')
 
-            return access_token
+            self.access_token = access_token
 
 
 def captcha_handler(captcha):

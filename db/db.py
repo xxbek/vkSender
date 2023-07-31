@@ -67,7 +67,18 @@ class DBAccess:
         return users
 
     def create_model_from_dict(self, vk_users: dict) -> list[User]:
-        print(vk_users)
+        users = []
+        for user in vk_users:
+            user_model = User(
+                vk_id=user['id'],
+                first_name=user['first_name'],
+                last_name=user['last_name'],
+                group_url='template',
+                group_name='template'
+            )
+            users.append(user_model)
+
+        return users
 
 
 

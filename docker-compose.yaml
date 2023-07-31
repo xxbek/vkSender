@@ -1,0 +1,14 @@
+version: '3.8'
+
+volumes:
+  redis_volume:
+
+services:
+  redis:
+    image: redis:6.2-alpine
+    volumes:
+      - redis_volume:/data
+    restart: always
+    ports:
+      - '6379:6379'
+

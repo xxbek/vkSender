@@ -11,3 +11,5 @@ SQLAlchemy==2.0.19
 typing_extensions==4.7.1
 urllib3==2.0.4
 vk-api==11.9.9
+
+redis~=4.6.0

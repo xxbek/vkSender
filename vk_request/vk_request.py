@@ -1,10 +1,12 @@
 import logging
+import time
 from typing import Generator
 
 import requests
 
 from accounts.accounts import Account
 from db.db import DBAccess
+from utils.utils import get_all_valid_users
 
 
 class VKRequest:
@@ -22,9 +24,10 @@ class VKWriter(VKRequest):
 
 
 class VKSearcher(VKRequest):
-    def __init__(self, db: DBAccess, account: Account, group_list: list[str]):
+    def __init__(self, db: DBAccess, account: Account, group_list: list[str], caching=False):
         super().__init__(db, account)
         self.group_list = group_list
+        self.caching = caching
 
     def get_group_offset(self, group_id):
         response = requests.get('https://api.vk.com/method/groups.getMembers', params={
@@ -33,7 +36,7 @@ class VKSearcher(VKRequest):
             'group_id': group_id,
             'sort': 'id_desc',
             'offset': 0,
-            'fields': 'last_seen',
+            'fields': 'last_seen, can_write_private_message',
         }).json()
 
         if response.get('error'):
@@ -45,36 +48,47 @@ class VKSearcher(VKRequest):
 
         return users // 1000
 
-    def yield_new_users_from_groups(self) -> Generator:
+    def yield_users_from_groups(self) -> Generator:
         for group in self.group_list:
-            for user in self.yield_new_users_from_one_group(group):
-                yield user
+            for new_user in self.yield_users_from_one_group(group):
+                yield new_user
             logging.info(f"Группа `{group}` была просканированна")
 
-    def yield_new_users_from_one_group(self, group_id) -> Generator:
-        response = {}
+    def yield_users_from_one_group(self, group_id) -> Generator:
+        filtered_users = []
         offset = 0
         max_offset = self.get_group_offset(group_id)
         while offset < max_offset:
+            time.sleep(1)
             response = requests.get('https://api.vk.com/method/groups.getMembers', params={
                 'access_token': self._account.access_token,
                 'v': 5.103,
                 'group_id': group_id,
-                'sort': 'time_asc',
-                'offset': offset,
-                'fields': ['last_seen', 'can_write_private_message']
+                'sort': 'id_desc',
+                'offset': 0,
+                'fields': 'last_seen, can_write_private_message',
             }).json()['response']
             offset += 1
 
-            # Обработать данные из вк и вернуть в удобноваримом виде
-            print(response)
-            # for item in response['items']:
-            #     try:
-            #         if item['last_seen']['time'] >= 1605571200:
-            #             good_id_list.append(item['id'])
-            #     except Exception as E:
-            #         continue
+            if self.caching:
+                all_valid_user: list = get_all_valid_users(response)
+                filtered_users.extend(all_valid_user)
+            else:
+                new_users = self.get_new_users(response)
+                filtered_users.extend(new_users)
 
-        yield response
+        yield filtered_users
+
+    def get_new_users(self, all_users):
+        new_users = []
+        return new_users
+
+
+# group_name = requests.get('https://api.vk.com/method/groups.getById', params={
+#                 'access_token': '',
+#                 'v': 5.103,
+#                 'group_id': '',
+#                 'fields': 'name',
+#             }).json()['response'][0]['name']
 
 
