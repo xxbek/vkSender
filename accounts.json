@@ -15,7 +15,7 @@
   ],
   "writers": [
     {
-      "login": "",
+      "login": "alice.karpovaw@gmail.com",
       "password": "",
       "proxy": {
         "proxy_ip": "",
@@ -23,56 +23,9 @@
         "proxy_login": "",
         "proxy_pass": ""
       },
-      "is_blocked": true,
-      "access_token": null
-    },
-    {
-      "login": "",
-      "password": "",
-      "proxy": {
-        "proxy_ip": "",
-        "proxy_port": "",
-        "proxy_login": "",
-        "proxy_pass": ""
-      },
-      "is_blocked": true,
-      "access_token": null
-    },
-    {
-      "login": "",
-      "password": "",
-      "proxy": {
-        "proxy_ip": "",
-        "proxy_port": "",
-        "proxy_login": "",
-        "proxy_pass": ""
-      },
-      "is_blocked": true,
-      "access_token": null
-    },
-    {
-      "login": "",
-      "password": "",
-      "proxy": {
-        "proxy_ip": "",
-        "proxy_port": "",
-        "proxy_login": "",
-        "proxy_pass": ""
-      },
-      "is_blocked": true,
-      "access_token": null
-    },
-    {
-      "login": "",
-      "password": "",
-      "proxy": {
-        "proxy_ip": "",
-        "proxy_port": "",
-        "proxy_login": "",
-        "proxy_pass": ""
-      },
-      "is_blocked": true,
-      "access_token": null
+      "is_blocked": false,
+      "access_token": "",
+      "messages_written": 0
     }
   ]
 }

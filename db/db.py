@@ -1,5 +1,6 @@
 import logging
 import sqlalchemy
+from sqlalchemy import text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from db.models import User
@@ -36,12 +37,14 @@ class DBAccess:
             )
             session.add(user)
             session.commit()
-            logging.info(f"Пользователь `{vk_id}: {first_name} {last_name}` добавлен в базу")
+            logging.info(f"Новый подписчик `{vk_id}: {first_name} {last_name}` группы {group_name} добавлен в базу")
 
     def add_users(self, users: list[User]):
-        with self._session as session:
-            session.add_all(users)
-            session.commit()
+        for user in users:
+            try:
+                self.add_user(user.vk_id, user.first_name, user.last_name, user.group_url, user.group_name)
+            except sqlalchemy.exc.SQLAlchemyError as err:
+                logging.error(f'Ошибка при добавлении нового пользователя {User} в базу данных: {err}')
 
     def is_user_in_db(self, vk_id: str) -> bool:
         with self._session as session:
@@ -61,9 +64,9 @@ class DBAccess:
 
         return user[0]
 
-    def get_all_users(self) -> list[type(User)]:
+    def get_all_unwritten_users(self) -> list[type(User)]:
         with self._session as session:
-            users = session.query(User).all()
+            users = session.query(User).filter(User.is_received_message is False).all()
         return users
 
     def create_model_from_dict(self, vk_users: dict) -> list[User]:
@@ -79,6 +82,15 @@ class DBAccess:
             users.append(user_model)
 
         return users
+
+    def change_user_message_status(self, vk_id: str):
+        with self._session as session:
+            users = session.query(User).filter(User.vk_id == vk_id).update({'is_received_message': True})
+        return users
+
+    def drop_users(self):
+        with self._session as session:
+            session.execute(text("TRUNCATE TABLE users"))
 
 
 

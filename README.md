@@ -1,6 +1,8 @@
 # vkSender
 Interface for interacting with the social network VK
 
+alembic init alembic
+
 
 - alembic.ini
 

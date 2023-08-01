@@ -1,5 +1,7 @@
 import json
 import logging
+from datetime import datetime, date
+
 from accounts.accounts import Account
 
 
@@ -37,9 +39,15 @@ def split_accounts_in_objects_and_authorize(account_config: dict, account_type: 
     return account_objects_list
 
 
-def get_monitoring_date(date):
-    new_date = date
-    return new_date
+def from_unix_timestamp_to_date(unix_time: int):
+    readable_date = datetime.utcfromtimestamp(unix_time).strftime('%Y-%m-%d %H:%M:%S')
+    return readable_date
+
+
+def from_date_to_unix_timestamp(date: str):
+    formated_date = datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+    unix_timestamp = datetime.timestamp(formated_date)
+    return unix_timestamp
 
 
 def get_all_valid_users(users: dict) -> list:
@@ -47,11 +55,26 @@ def get_all_valid_users(users: dict) -> list:
 
     for user in users['items']:
         # 1672531201 = Январь 01 2023
-        if user.get('last_seen') is None or user.get('can_write_private_message') is None:
+        if user.get('last_seen') is not None and user['last_seen']['time'] <= 1672531201:
             continue
 
-        if user['last_seen']['time'] >= 1672531201 and user['can_write_private_message'] == 1:
+        if user.get('can_write_private_message') is not None and user['can_write_private_message'] == 1:
             filtered_users.append(user)
 
     return filtered_users
+
+
+
+
+
+def save_dump_date_in_config(new_setting: dict) -> None:
+    current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    new_setting['last_cache_dump_date'] = current_date
+    with open('config.json', 'w') as config:
+        config.write(
+            json.dumps(new_setting, indent=2)
+        )
+
+
 

@@ -6,11 +6,12 @@ import json
 
 
 class Account:
-    def __init__(self, login: str, password: str, proxy: dict, access_token=None, is_blocked=False):
+    def __init__(self, login: str, password: str, proxy: dict, access_token=None, messages_written=0, is_blocked=False):
         self.login = login
         self.password = password
         self.proxy = proxy
         self.access_token = access_token
+        self.messages_written = messages_written
 
         self.is_authenticated = True if self.access_token else False
         self.is_blocked = is_blocked
@@ -24,7 +25,14 @@ class Account:
         access_token = None
 
         try:
-            account = vk_api.VkApi(self.login, self.password, app_id=2685278, captcha_handler=captcha_handler)
+            account = vk_api.VkApi(
+                self.login,
+                self.password,
+                # app_id = 6222115
+                app_id=2685278,
+                captcha_handler=captcha_handler,
+                # session= is requests.Session
+            )
             account.auth()
             account_api = account.get_api()
 
@@ -55,3 +63,13 @@ def captcha_handler(captcha):
     return captcha.try_again(key)
 
 
+def auth_handler():
+    """ При двухфакторной аутентификации вызывается эта функция.
+    """
+
+    # Код двухфакторной аутентификации
+    key = input("Enter authentication code: ")
+    # Если: True - сохранить, False - не сохранять.
+    remember_device = True
+
+    return key, remember_device
