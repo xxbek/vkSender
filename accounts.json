@@ -16,7 +16,7 @@
   "writers": [
     {
       "login": "alice.karpovaw@gmail.com",
-      "password": "",
+      "password": "3Tolstiaka!",
       "proxy": {
         "proxy_ip": "",
         "proxy_port": "",
@@ -24,7 +24,7 @@
         "proxy_pass": ""
       },
       "is_blocked": false,
-      "access_token": "",
+      "access_token": null,
       "messages_written": 0
     }
   ]

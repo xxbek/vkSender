@@ -4,6 +4,8 @@ import vk_api
 import os
 import json
 
+from requests import Session
+
 
 class Account:
     def __init__(self, login: str, password: str, proxy: dict, access_token=None, messages_written=0, is_blocked=False):
@@ -16,6 +18,12 @@ class Account:
         self.is_authenticated = True if self.access_token else False
         self.is_blocked = is_blocked
 
+    def __str__(self):
+        return f"{self.login}"
+
+    def __repr__(self):
+        return f"{self.login}"
+
     def set_access_token_from_vk(self):
         """
         Получение токена через логин и пароль.
@@ -24,6 +32,12 @@ class Account:
         """
         access_token = None
 
+        session = Session()
+        # session.proxies = {'http': 'http://127.0.0.1:8000'}
+
+        # pip install pysocks
+        # session.proxies.update({'http': 'socks5://user:password@127.0.0.1:8000'})
+
         try:
             account = vk_api.VkApi(
                 self.login,
@@ -31,11 +45,9 @@ class Account:
                 # app_id = 6222115
                 app_id=2685278,
                 captcha_handler=captcha_handler,
-                # session= is requests.Session
+                session=session
             )
-            account.auth()
             account_api = account.get_api()
-
         except vk_api.AuthError as error_msg:
             logging.error(f"Ошибка при авторизации аккаунта: {error_msg}")
             self.access_token = access_token

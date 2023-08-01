@@ -10,7 +10,21 @@ def get_config(path: str) -> dict:
         return json.load(config)
 
 
-def save_token_and_block_status_in_account_config(new_config) -> None:
+def update_account_config_with_sent_messages_amount(accounts: list[Account]):
+    config = get_config('accounts.json')
+    config_searchers: dict = config["searchers"]
+    config_writers: dict = config["writers"]
+
+    for account in accounts:
+        for config_account in config_writers:
+            if account.login == config_account['login']:
+                config_account['messages_written'] = account.messages_written
+                continue
+    config_writers.update(config_searchers)
+    update_account_config(config_writers)
+
+
+def update_account_config(new_config) -> None:
     with open('accounts.json', 'w') as config:
         config.write(
             json.dumps(new_config, indent=2)
@@ -62,9 +76,6 @@ def get_all_valid_users(users: dict) -> list:
             filtered_users.append(user)
 
     return filtered_users
-
-
-
 
 
 def save_dump_date_in_config(new_setting: dict) -> None:

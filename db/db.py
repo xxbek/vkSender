@@ -66,7 +66,7 @@ class DBAccess:
 
     def get_all_unwritten_users(self) -> list[type(User)]:
         with self._session as session:
-            users = session.query(User).filter(User.is_received_message is False).all()
+            users = session.query(User).filter(User.is_received_message == 0).all()
         return users
 
     def create_model_from_dict(self, vk_users: dict) -> list[User]:
@@ -85,8 +85,11 @@ class DBAccess:
 
     def change_user_message_status(self, vk_id: str):
         with self._session as session:
-            users = session.query(User).filter(User.vk_id == vk_id).update({'is_received_message': True})
-        return users
+            user = session.query(User).filter(User.vk_id == vk_id)
+            user.is_received_message = 1
+            session.commit()
+            
+        return user
 
     def drop_users(self):
         with self._session as session:

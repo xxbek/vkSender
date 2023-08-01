@@ -4,6 +4,7 @@ import random
 from accounts.accounts import Account
 from db.db import DBAccess
 from db.redis_db import RedisAccess
+from utils.utils import update_account_config, update_account_config_with_sent_messages_amount
 from vk_request.vk_request import VKWriter, VKSearcher
 
 
@@ -12,11 +13,11 @@ class AccountManager:
             self,
             delay_between_request: str,
             groups: list[str],
+            messages_examples: dict,
             search_accounts: list[Account] = None,
             write_accounts: list[Account] = None,
             caching=False,
             message_limit=10,
-            messages_examples=None
     ):
         self._db = DBAccess
         self._cache = RedisAccess()
@@ -28,7 +29,7 @@ class AccountManager:
         self._writer = VKWriter
         self.caching = caching
         self.message_limit = message_limit
-        self.messages_examples = messages_examples or []
+        self.messages_examples = messages_examples
 
     def search_worker(self):
         db = self._db()
@@ -50,7 +51,7 @@ class AccountManager:
         while possible_messages_to_send_now != 0 and messages_need_to_send != 0:
             messages_need_to_send = len(users)
             accounts_number = len(self._write_accounts)
-            messages_was_already_sent = sum([message_sent for message_sent in self._write_accounts])
+            messages_was_already_sent = sum([account.messages_written for account in self._write_accounts])
             total_possible_sending_number = accounts_number * self.message_limit
 
             possible_messages_to_send_now = total_possible_sending_number - messages_was_already_sent
@@ -60,15 +61,23 @@ class AccountManager:
                                 f'превышает пропускную способность аккаунтов '
                                 f'({possible_messages_to_send_now} сообщений возможно отправить сейчас)')
                 return
-            message = random.choice(self.messages_examples)
-            account = self._get_random_valid_writer()
-            writer = self._writer(db, self._cache, account)
+            message = random.choice(self.messages_examples['first_messages'])
+            account = self._get_random_valid_account()
+            writer = self._writer(db, self._cache, account, delay=self.delay)
             user = users.pop()
             writer.write_to_the_user(user, message)
+            writer.reply_to_unwritten_messages(self.messages_examples['second_messages'])
+            messages_need_to_send = len(users)
 
-    def _get_random_valid_writer(self) -> Account:
-        account = random.choice(self._write_accounts)
-        while account.messages_written >= self.message_limit:
-            account = random.choice(self._write_accounts)
+        update_account_config_with_sent_messages_amount(self._write_accounts)
 
-        return account
+
+
+    def _get_random_valid_account(self) -> Account:
+        valid_accounts = [account for account in self._write_accounts if account.messages_written < self.message_limit]
+        if len(valid_accounts):
+            logging.error(f"Все аккаунты превысили лимит сообщений на сегодня")
+
+        valid_account = random.choice(valid_accounts)
+
+        return valid_account

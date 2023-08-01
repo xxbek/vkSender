@@ -12,33 +12,49 @@ from utils.utils import get_all_valid_users
 
 
 class VKRequest:
-    def __init__(self, db: DBAccess, cache: RedisAccess, account: Account):
+    def __init__(self, db: DBAccess, cache: RedisAccess, account: Account, delay=1):
         self._db = db
         self.cache = cache
         self._account = account
+        self.delay = delay
+
+    def sleep(self):
+        time.sleep(self.delay)
 
 
 class VKWriter(VKRequest):
-    def __init__(self, db: DBAccess, cache: RedisAccess, account: Account, group_list: list[str], delay=1, caching=False):
-        super().__init__(db, cache, account)
-        self.group_list = group_list
-        self.caching = caching
-        self.delay = delay
+    def __init__(self, db: DBAccess, cache: RedisAccess, account: Account, delay=1):
+        super().__init__(db, cache, account, delay)
+
     def get_users_from_db(self) -> list:
         pass
 
     def write_to_the_user(self, user: User, message: str):
-        pass
-        user.is_received_message = True
+        self.sleep()
+        response = requests.get('https://api.vk.com/method/messages.send', params={
+            'access_token': self._account.access_token,
+            'v': 5.103,
+            'user_id': 287611673,
+            'random_id': 1,
+            'message': message + ' https://vk.com/cutebeawer',
+            'dont_parse_links': 0,
+        })
+
+        if response.status_code == 200:
+            logging.info(f"Сообщение было отправлено пользователю {user.vk_id}")
+
+        self._db.change_user_message_status(user.vk_id)
         self._account.messages_written += 1
+
+    def reply_to_unwritten_messages(self, second_messages: list[str]):
+        pass
 
 
 class VKSearcher(VKRequest):
     def __init__(self, db: DBAccess, cache: RedisAccess, account: Account, group_list: list[str], delay=1, caching=False):
-        super().__init__(db, cache, account)
+        super().__init__(db, cache, account, delay)
         self.group_list = group_list
         self.caching = caching
-        self.delay = delay
 
     def get_group_offset(self, group_id):
         response = requests.get('https://api.vk.com/method/groups.getMembers', params={
@@ -90,9 +106,6 @@ class VKSearcher(VKRequest):
                 filtered_users.extend(new_users)
 
         yield filtered_users
-
-    def sleep(self):
-        time.sleep(self.delay)
 
     def get_new_users(self, all_users):
         new_users = []
