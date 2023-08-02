@@ -32,7 +32,7 @@ class Account:
         """
         access_token = None
 
-        session = Session()
+        # session = Session()
         # session.proxies = {'http': 'http://127.0.0.1:8000'}
 
         # pip install pysocks
@@ -45,8 +45,9 @@ class Account:
                 # app_id = 6222115
                 app_id=2685278,
                 captcha_handler=captcha_handler,
-                session=session
+                # session=session
             )
+            account.auth()
             account_api = account.get_api()
         except vk_api.AuthError as error_msg:
             logging.error(f"Ошибка при авторизации аккаунта: {error_msg}")

@@ -30,6 +30,7 @@ if __name__ == "__main__":
 
     manager = AccountManager(
         search_accounts=searcher_objects,
+        messages_examples={},
         delay_between_request=settings['second_delay_between_request'],
         groups=settings['groups'],
         caching=True

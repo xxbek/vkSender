@@ -12,16 +12,15 @@ def get_config(path: str) -> dict:
 
 def update_account_config_with_sent_messages_amount(accounts: list[Account]):
     config = get_config('accounts.json')
-    config_searchers: dict = config["searchers"]
-    config_writers: dict = config["writers"]
+    config_writers: list = config["writers"]
 
     for account in accounts:
         for config_account in config_writers:
             if account.login == config_account['login']:
                 config_account['messages_written'] = account.messages_written
                 continue
-    config_writers.update(config_searchers)
-    update_account_config(config_writers)
+    config["writers"] = config_writers
+    update_account_config(config)
 
 
 def update_account_config(new_config) -> None:

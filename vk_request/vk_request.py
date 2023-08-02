@@ -29,25 +29,44 @@ class VKWriter(VKRequest):
     def get_users_from_db(self) -> list:
         pass
 
-    def write_to_the_user(self, user: User, message: str):
+    def write_to_the_user(self, user: User, message: str, is_it_first_message=True):
         self.sleep()
         response = requests.get('https://api.vk.com/method/messages.send', params={
             'access_token': self._account.access_token,
             'v': 5.103,
-            'user_id': 287611673,
-            'random_id': 1,
+            'user_id': user.vk_id,
+            'random_id': 1 if is_it_first_message else 0,
             'message': message + ' https://vk.com/cutebeawer',
             'dont_parse_links': 0,
         })
 
         if response.status_code == 200:
-            logging.info(f"Сообщение было отправлено пользователю {user.vk_id}")
+            logging.info(f"Сообщение было отправлено пользователю {user.vk_id} из аккаунта {self._account.login}")
 
         self._db.change_user_message_status(user.vk_id)
         self._account.messages_written += 1
 
-    def reply_to_unwritten_messages(self, second_messages: list[str]):
-        pass
+    def reply_to_unwritten_messages(self, second_messages: str):
+        self.sleep()
+        response = requests.get('https://api.vk.com/method/messages.getConversations', params={
+            'access_token': self._account.access_token,
+            'v': 5.103,
+            'count': 200,
+            'filter': 'unread',
+        })
+
+        conversations = response.json()['response']['items']
+
+        if response.status_code != 200:
+            logging.error(f"не удалось получить список непрочитанных сообщений у пользователя {self._account.login}")
+            return
+
+        for conversation in conversations:
+            user_id = conversation['last_message']['from_id']
+            user = self._db.get_user_by_vk_id(user_id)
+            if user:
+                # TODO Перенести message
+                self.write_to_the_user(user, second_messages[0], is_it_first_message=False)
 
 
 class VKSearcher(VKRequest):

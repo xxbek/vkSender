@@ -46,8 +46,8 @@ class AccountManager:
 
     def write_worker(self):
         db = self._db()
-        possible_messages_to_send_now, messages_need_to_send = None, None
         users = db.get_all_unwritten_users()
+        possible_messages_to_send_now, messages_need_to_send = None, len(users)
         while possible_messages_to_send_now != 0 and messages_need_to_send != 0:
             messages_need_to_send = len(users)
             accounts_number = len(self._write_accounts)
@@ -65,12 +65,14 @@ class AccountManager:
             account = self._get_random_valid_account()
             writer = self._writer(db, self._cache, account, delay=self.delay)
             user = users.pop()
-            writer.write_to_the_user(user, message)
-            writer.reply_to_unwritten_messages(self.messages_examples['second_messages'])
+            writer.write_to_the_user(user, message, is_it_first_message=True)
             messages_need_to_send = len(users)
 
-        update_account_config_with_sent_messages_amount(self._write_accounts)
+        for account in self._write_accounts:
+            writer = self._writer(db, self._cache, account, delay=self.delay)
+            writer.reply_to_unwritten_messages(self.messages_examples['second_messages'])
 
+        update_account_config_with_sent_messages_amount(self._write_accounts)
 
 
     def _get_random_valid_account(self) -> Account:

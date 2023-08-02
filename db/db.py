@@ -85,7 +85,7 @@ class DBAccess:
 
     def change_user_message_status(self, vk_id: str):
         with self._session as session:
-            user = session.query(User).filter(User.vk_id == vk_id)
+            user = session.query(User).filter(User.vk_id == int(vk_id)).one()
             user.is_received_message = 1
             session.commit()
             
