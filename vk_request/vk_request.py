@@ -1,4 +1,3 @@
-import logging
 import time
 from typing import Generator
 
@@ -8,6 +7,7 @@ from accounts.accounts import Account
 from db.db import DBAccess
 from db.models import User
 from db.redis_db import RedisAccess
+from utils.logger import logger
 from utils.utils import get_all_valid_users
 
 
@@ -35,13 +35,13 @@ class VKWriter(VKRequest):
             'access_token': self._account.access_token,
             'v': 5.103,
             'user_id': user.vk_id,
-            'random_id': 1 if is_it_first_message else 0,
+            'random_id': 1 if is_it_first_message else 2,
             'message': message + ' https://vk.com/cutebeawer',
             'dont_parse_links': 0,
         })
 
         if response.status_code == 200:
-            logging.info(f"Сообщение было отправлено пользователю {user.vk_id} из аккаунта {self._account.login}")
+            logger.info(f"Сообщение было отправлено пользователю {user.vk_id} из аккаунта {self._account.login}")
 
         self._db.change_user_message_status(user.vk_id)
         self._account.messages_written += 1
@@ -58,7 +58,7 @@ class VKWriter(VKRequest):
         conversations = response.json()['response']['items']
 
         if response.status_code != 200:
-            logging.error(f"не удалось получить список непрочитанных сообщений у пользователя {self._account.login}")
+            logger.error(f"не удалось получить список непрочитанных сообщений у пользователя {self._account.login}")
             return
 
         for conversation in conversations:
@@ -87,7 +87,7 @@ class VKSearcher(VKRequest):
 
         if response.get('error'):
             err_message = response.get('error').get('error_msg')
-            logging.error(f'Ошибка при поиске пользователей в группе `{group_id}`: {err_message}')
+            logger.error(f'Ошибка при поиске пользователей в группе `{group_id}`: {err_message}')
             return
 
         users = response['response']['count']
@@ -98,7 +98,7 @@ class VKSearcher(VKRequest):
         for group in self.group_list:
             for new_user in self.yield_users_from_one_group(group):
                 yield new_user
-            logging.info(f"Группа `{group}` была просканированна, найдено {len(new_user)} человек")
+            logger.info(f"Группа `{group}` была просканированна, найдено {len(new_user)} человек")
 
     def yield_users_from_one_group(self, group_id) -> Generator:
         filtered_users = []

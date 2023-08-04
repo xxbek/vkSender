@@ -1,8 +1,8 @@
 import json
-import logging
-from datetime import datetime, date
+from datetime import datetime
 
 from accounts.accounts import Account
+from utils.logger import logger
 
 
 def get_config(path: str) -> dict:
@@ -41,7 +41,7 @@ def split_accounts_in_objects_and_authorize(account_config: dict, account_type: 
 
         if account_object.is_blocked is True:
             account['is_blocked'] = True
-            logging.warning(f"Аккаунт `{account_object.login}` заблокирован")
+            logger.error(f"Аккаунт `{account_object.login}` заблокирован")
             continue
 
         if account_object.access_token is not None and not account['access_token']:

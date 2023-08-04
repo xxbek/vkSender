@@ -1,10 +1,10 @@
-import logging
 import random
 
 from accounts.accounts import Account
 from db.db import DBAccess
 from db.redis_db import RedisAccess
-from utils.utils import update_account_config, update_account_config_with_sent_messages_amount
+from utils.logger import logger
+from utils.utils import update_account_config_with_sent_messages_amount
 from vk_request.vk_request import VKWriter, VKSearcher
 
 
@@ -29,7 +29,7 @@ class AccountManager:
         self._writer = VKWriter
         self.caching = caching
         self.message_limit = message_limit
-        self.messages_examples = messages_examples
+        self.first_messages, self.second_messages = self._parse_messages(messages_examples)
 
     def search_worker(self):
         db = self._db()
@@ -57,7 +57,7 @@ class AccountManager:
             possible_messages_to_send_now = total_possible_sending_number - messages_was_already_sent
 
             if possible_messages_to_send_now < messages_need_to_send:
-                logging.error(f'Число новых пользователей ({messages_need_to_send}) '
+                logger.error(f'Число новых пользователей ({messages_need_to_send}) '
                                 f'превышает пропускную способность аккаунтов '
                                 f'({possible_messages_to_send_now} сообщений возможно отправить сейчас)')
                 return
@@ -78,8 +78,13 @@ class AccountManager:
     def _get_random_valid_account(self) -> Account:
         valid_accounts = [account for account in self._write_accounts if account.messages_written < self.message_limit]
         if len(valid_accounts):
-            logging.error(f"Все аккаунты превысили лимит сообщений на сегодня")
+            logger.error(f"Все аккаунты превысили лимит сообщений на сегодня")
 
         valid_account = random.choice(valid_accounts)
 
         return valid_account
+
+
+    def _parse_messages(self, message_config: dict, manager_url):
+        for message in message_config['first_messages'] + message_config['second_messages']:
+

@@ -1,13 +1,13 @@
-import logging
 import sqlalchemy
 from sqlalchemy import text
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.exc import SQLAlchemyError
 from db.models import User
+from utils.logger import logger
 
 DB_FILENAME = "db.sqlite"
 
-engine = sqlalchemy.create_engine(f"sqlite:///{DB_FILENAME}", echo=True)
+engine = sqlalchemy.create_engine(f"sqlite:///{DB_FILENAME}")
 make_sqlite_session = sessionmaker(engine)
 
 
@@ -16,7 +16,7 @@ def get_db_session() -> Session:
     try:
         new_session: Session = make_sqlite_session()
     except SQLAlchemyError as err:
-        logging.error(f"Cannot connect to database: {err}")
+        logger.error(f"Cannot connect to database: {err}")
 
     return new_session
 
@@ -37,14 +37,14 @@ class DBAccess:
             )
             session.add(user)
             session.commit()
-            logging.info(f"Новый подписчик `{vk_id}: {first_name} {last_name}` группы {group_name} добавлен в базу")
+            logger.info(f"Новый подписчик `{vk_id}: {first_name} {last_name}` группы {group_name} добавлен в базу")
 
     def add_users(self, users: list[User]):
         for user in users:
             try:
                 self.add_user(user.vk_id, user.first_name, user.last_name, user.group_url, user.group_name)
             except sqlalchemy.exc.SQLAlchemyError as err:
-                logging.error(f'Ошибка при добавлении нового пользователя {User} в базу данных: {err}')
+                logger.error(f'Ошибка при добавлении нового пользователя {User} в базу данных: {err}')
 
     def is_user_in_db(self, vk_id: str) -> bool:
         with self._session as session:
@@ -57,7 +57,7 @@ class DBAccess:
             user = session.query(User).filter(User.vk_id == vk_id).all()
 
         if len(user) != 1:
-            logging.error(
+            logger.error(
                 f"Ошибка в базе данных: пользователь с идентификатором `{vk_id}` не существует или дублируется"
             )
             return None

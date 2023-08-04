@@ -1,10 +1,10 @@
-import logging
-
 import vk_api
 import os
 import json
 
 from requests import Session
+
+from utils.logger import logger
 
 
 class Account:
@@ -50,7 +50,7 @@ class Account:
             account.auth()
             account_api = account.get_api()
         except vk_api.AuthError as error_msg:
-            logging.error(f"Ошибка при авторизации аккаунта: {error_msg}")
+            logger.error(f"Ошибка при авторизации аккаунта: {error_msg}")
             self.access_token = access_token
             return
 

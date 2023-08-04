@@ -1,15 +1,12 @@
-import logging
-
 from accounts.manager import AccountManager
+from utils.logger import logger
 from utils.utils import get_config, split_accounts_in_objects_and_authorize, \
     update_account_config
 
-logging.basicConfig(format='%(process)d-%(levelname)s-%(message)s', level=logging.DEBUG)
 
 if __name__ == "__main__":
 
     accounts, settings, messages = map(get_config, ['accounts.json', 'config.json', 'messages.json'])
-
     searcher_objects = split_accounts_in_objects_and_authorize(accounts, 'searchers')
     writer_accounts = split_accounts_in_objects_and_authorize(accounts, 'writers')
     update_account_config(accounts)
@@ -22,7 +19,7 @@ if __name__ == "__main__":
         groups=settings['groups']
     )
 
-    manager.write_worker()
+    manager.search_worker()
 
 
 
@@ -31,6 +28,7 @@ if __name__ == "__main__":
 # 3) Достать название групп и вставить их в БД
 # 4) Сделать cli для обнуления прогресса воркеров
 # 5) Добавить проксирование к запросам к вк
+# 5++) Добавить schedule к скрипту
 # 6) Рефакторинг
 # 7) Добавить родителький класс для vkreq
 # 8) Добавить модульное тестирование
