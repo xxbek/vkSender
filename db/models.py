@@ -11,7 +11,6 @@ class User(Base):
     vk_id = Column(Integer, unique=True)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
-    group_url = Column(String, nullable=False)
     group_name = Column(String, nullable=False)
     is_received_message = Column(Boolean, nullable=False, default=False)
 

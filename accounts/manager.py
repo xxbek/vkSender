@@ -2,6 +2,7 @@ import random
 
 from accounts.accounts import Account
 from db.db import DBAccess
+from db.models import User
 from db.redis_db import RedisAccess
 from utils.logger import logger
 from utils.utils import update_account_config_with_sent_messages_amount
@@ -14,9 +15,10 @@ class AccountManager:
             delay_between_request: str,
             groups: list[str],
             messages_examples: dict,
+            manager_url: str,
             search_accounts: list[Account] = None,
             write_accounts: list[Account] = None,
-            caching=False,
+            is_caching=False,
             message_limit=10,
     ):
         self._db = DBAccess
@@ -27,18 +29,19 @@ class AccountManager:
         self._write_accounts = write_accounts or []
         self._searcher = VKSearcher
         self._writer = VKWriter
-        self.caching = caching
+        self.is_caching: bool = is_caching
         self.message_limit = message_limit
-        self.first_messages, self.second_messages = self._parse_messages(messages_examples)
+        self.messages_examples: dict = messages_examples
+        self._manager_url = manager_url
 
     def search_worker(self):
         db = self._db()
         account = random.choice(self._search_accounts)
-        searcher = self._searcher(db, RedisAccess(), account, self._groups, delay=self.delay, caching=self.caching)
-        for vk_users in searcher.yield_users_from_groups():
-            users = db.create_model_from_dict(vk_users)
+        searcher = self._searcher(db, RedisAccess(), account, delay=self.delay, caching=self.is_caching)
+        for vk_users, group_name in searcher.yield_users_from_groups(self._groups):
+            users = db.create_model_from_dict(vk_users, group_name)
 
-            if self.caching is True:
+            if self.is_caching is True:
                 self._cache.save_users(users)
             else:
                 db.add_users(users)
@@ -61,30 +64,39 @@ class AccountManager:
                                 f'превышает пропускную способность аккаунтов '
                                 f'({possible_messages_to_send_now} сообщений возможно отправить сейчас)')
                 return
-            message = random.choice(self.messages_examples['first_messages'])
+
             account = self._get_random_valid_account()
             writer = self._writer(db, self._cache, account, delay=self.delay)
             user = users.pop()
+            message = self._create_first_message(user)
             writer.write_to_the_user(user, message, is_it_first_message=True)
             messages_need_to_send = len(users)
 
-        for account in self._write_accounts:
-            writer = self._writer(db, self._cache, account, delay=self.delay)
-            writer.reply_to_unwritten_messages(self.messages_examples['second_messages'])
+        self.reply_to_unwritten_messages(db)
 
         update_account_config_with_sent_messages_amount(self._write_accounts)
 
+    def reply_to_unwritten_messages(self, db):
+        for account in self._write_accounts:
+            writer = self._writer(db, self._cache, account, delay=self.delay)
+            reply_message = random.choice(self.messages_examples['second_messages']).format(manager=self._manager_url)
+            writer.reply_to_unwritten_messages(reply_message)
 
     def _get_random_valid_account(self) -> Account:
         valid_accounts = [account for account in self._write_accounts if account.messages_written < self.message_limit]
-        if len(valid_accounts):
+        if len(valid_accounts) == 0:
             logger.error(f"Все аккаунты превысили лимит сообщений на сегодня")
 
         valid_account = random.choice(valid_accounts)
 
         return valid_account
 
-
-    def _parse_messages(self, message_config: dict, manager_url):
-        for message in message_config['first_messages'] + message_config['second_messages']:
+    def _create_first_message(self, user: User) -> str:
+        message_template = random.choice(self.messages_examples['first_messages'])
+        message = message_template.format(
+            user=user.first_name,
+            group_name=user.group_name,
+            manager=self._manager_url
+        )
+        return message
 

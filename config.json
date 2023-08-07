@@ -1,10 +1,12 @@
 {
-  "second_delay_between_request": 2,
-  "message_limit_per_one_account": 5,
+  "second_delay_between_request": 1,
+  "message_limit_per_one_account": 15,
   "manager_url": "https://vk.com/some_user_id",
   "monitoring_frequency": 1,
-  "last_cache_dump_date": "2023-08-04 03:34:44",
+  "last_cache_dump_date": "2023-08-08 01:17:25",
   "groups": [
-    "kracuvye_nodrostku_temira"
+    "kracuvye_nodrostku_temira",
+    "job_search_online",
+    "sbplove"
   ]
 }
