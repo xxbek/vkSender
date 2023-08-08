@@ -12,32 +12,32 @@ from vk_request.vk_request import VKWriter, VKSearcher
 class AccountManager:
     def __init__(
             self,
-            delay_between_request: str,
-            groups: list[str],
             messages_examples: dict,
-            manager_url: str,
+            settings: dict,
             search_accounts: list[Account] = None,
             write_accounts: list[Account] = None,
             is_caching=False,
-            message_limit=10,
     ):
         self._db = DBAccess
         self._cache = RedisAccess()
-        self.delay = delay_between_request
-        self._groups = groups
         self._search_accounts = search_accounts or []
         self._write_accounts = write_accounts or []
         self._searcher = VKSearcher
         self._writer = VKWriter
-        self.is_caching: bool = is_caching
-        self.message_limit = message_limit
+
         self.messages_examples: dict = messages_examples
-        self._manager_url = manager_url
+
+        self._delay: int = settings['second_delay_between_request']
+        self._groups: list[str] = settings['groups']
+        self._manager_url: str = settings['manager_url']
+        self.message_limit = settings['message_limit_per_one_account']
+
+        self.is_caching: bool = is_caching
 
     def search_worker(self):
         db = self._db()
         account = random.choice(self._search_accounts)
-        searcher = self._searcher(db, RedisAccess(), account, delay=self.delay, caching=self.is_caching)
+        searcher = self._searcher(db, RedisAccess(), account, delay=self._delay, caching=self.is_caching)
         for vk_users, group_name in searcher.yield_users_from_groups(self._groups):
             users = db.create_model_from_dict(vk_users, group_name)
 
@@ -66,7 +66,7 @@ class AccountManager:
                 return
 
             account = self._get_random_valid_account()
-            writer = self._writer(db, self._cache, account, delay=self.delay)
+            writer = self._writer(db, self._cache, account, delay=self._delay)
             user = users.pop()
             message = self._create_first_message(user)
             writer.write_to_the_user(user, message, is_it_first_message=True)
@@ -78,7 +78,7 @@ class AccountManager:
 
     def reply_to_unwritten_messages(self, db):
         for account in self._write_accounts:
-            writer = self._writer(db, self._cache, account, delay=self.delay)
+            writer = self._writer(db, self._cache, account, delay=self._delay)
             reply_message = random.choice(self.messages_examples['second_messages']).format(manager=self._manager_url)
             writer.reply_to_unwritten_messages(reply_message)
 

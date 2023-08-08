@@ -1,5 +1,6 @@
 import redis
 
+from db.models import User
 from utils.logger import logger
 
 REDIS = "redis://localhost:6379"
@@ -13,7 +14,7 @@ class RedisAccess:
         except Exception as e:
             logger.error(f'Error while connecting to database: {e}')
 
-    def save_users(self, users) -> None:
+    def save_users(self, users: list[User]) -> None:
         for user in users:
             if not self.redis.hgetall(user.vk_id):
                 user_map = {

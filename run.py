@@ -17,13 +17,11 @@ if __name__ == "__main__":
         search_accounts=searcher_objects,
         write_accounts=writer_accounts,
         messages_examples=messages,
-        delay_between_request=settings['second_delay_between_request'],
-        groups=settings['groups'],
-        manager_url=settings['manager_url']
+        settings=settings
     )
 
     while True:
-        # manager.search_worker()
+        manager.search_worker()
         manager.write_worker()
         logger.info("Цикл логгера завершен")
         time.sleep(200)

@@ -12,9 +12,8 @@ class Account:
         self.login = login
         self.password = password
         self.proxy = proxy
-        self.access_token = access_token
         self.messages_written = messages_written
-
+        self.access_token = self._check_access_token(access_token)
         self.is_authenticated = True if self.access_token else False
         self.is_blocked = is_blocked
 
@@ -23,6 +22,24 @@ class Account:
 
     def __repr__(self):
         return f"{self.login}"
+
+    def _check_access_token(self, access_token: str) -> str | None:
+        if not access_token:
+            return None
+        try:
+            vk_session = vk_api.VkApi(login=self.login, password=self.password, token=access_token)
+            vk = vk_session.get_api()
+            account_info = vk.account.getProfileInfo()
+            user_info = vk.users.get(user_ids=account_info.get('id'), fields='deactivated')
+
+        except vk_api.AuthError as err:
+            logger.error(f"Ошибка при авторизации аккаунта  {self.login}: {err}")
+            return None
+        except vk_api.ApiError as err:
+            logger.error(f"Ошибка при авторизации аккаунта {self.login}: {err}")
+            return None
+
+        return access_token
 
     def set_access_token_from_vk(self):
         """
@@ -56,8 +73,9 @@ class Account:
 
         try:
             user = account_api.users.get()
-        except Exception as err:
-            print(f"Error: {err}")
+        except vk_api.ApiError as err:
+            logger.warning(f"Аккаунт {self.login} был заблокирован: {err}")
+            self.is_blocked = True
         else:
             with open('vk_config.v2.json', 'r') as data_file:
                 data = json.load(data_file)
@@ -66,7 +84,7 @@ class Account:
                 for yyy in data[self.login]['token'][xxx].keys():
                     access_token = data[self.login]['token'][xxx][yyy]['access_token']
             os.remove('vk_config.v2.json')
-
+            self.is_blocked = False
             self.access_token = access_token
 
 

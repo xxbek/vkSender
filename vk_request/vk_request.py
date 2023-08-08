@@ -24,13 +24,12 @@ class VKRequest:
     def sleep(self):
         time.sleep(self.delay)
 
-    def _request(self, endpoint, params: dict) -> Response:
+    def _request(self, endpoint, params=None) -> Response:
         # session = Session()
         # session.proxies = {'http': 'http://127.0.0.1:8000'}
         # session.proxies.update({'http': 'socks5://user:password@127.0.0.1:8000'})
         # or just
         # proxies = { 'https' : 'https://user:password@proxyip:port' }
-
         default_params = {
             'access_token': self._account.access_token,
             'v': 5.103,
@@ -61,7 +60,10 @@ class VKWriter(VKRequest):
         )
         error = response.json().get('error')
         if error:
-            logger.error(f"Не удалось отправить сообщение пользователю {user.vk_id}: {error['error_msg']}")
+            logger.error(
+                f"Не удалось отправить сообщение пользователю {user.vk_id} из аккаунта {self._account}: {error['error_msg']}")
+            if error.get('ban_info'):
+                self._account.is_blocked = True
             return
 
         logger.info(f"Сообщение было отправлено пользователю {user.vk_id} из аккаунта {self._account.login}")
@@ -75,17 +77,19 @@ class VKWriter(VKRequest):
             params={'count': 200, 'filter': 'unread'}
         )
 
-        conversations = response.json()['response']['items']
-
-        if response.status_code != 200:
-            logger.error(f"Не удалось получить список непрочитанных сообщений у аккаунта {self._account.login}")
+        error = response.json().get('error')
+        if error:
+            logger.error(
+                f"Не удалось получить список непрочитанных сообщений у аккаунта {self._account.login}")
             return
+
+        conversations = response.json()['response']['items']
 
         for conversation in conversations:
             user_id = conversation['last_message']['from_id']
             user = self._db.get_user_by_vk_id(user_id)
-
-            self.write_to_the_user(user, second_messages, is_it_first_message=False)
+            if user:
+                self.write_to_the_user(user, second_messages, is_it_first_message=False)
 
 
 class VKSearcher(VKRequest):
@@ -99,8 +103,7 @@ class VKSearcher(VKRequest):
             params={
                 'group_id': group_id,
                 'sort': 'id_desc',
-                'offset': 0,
-                'fields': 'last_seen, can_write_private_message'
+                'offset': 0
             }
         ).json()
 
@@ -117,21 +120,25 @@ class VKSearcher(VKRequest):
         for group in group_list:
             group_name = self._get_group_name(group)
             if group_name:
-                for new_user in self.yield_users_from_one_group(group):
-                    yield new_user, group_name
-                logger.info(f"Группа `{group}` была просканированна, найдено {len(new_user)} человек")
+                for users_from_group in self._yield_users_from_one_group(group):
+                    yield users_from_group, group_name
+                logger.info(f"Группа `{group}` была просканированна, найдено {len(users_from_group)} человек")
 
-    def yield_users_from_one_group(self, group_id) -> Generator:
+    def _yield_users_from_one_group(self, group_id) -> Generator:
         filtered_users = []
         offset = 0
         max_offset = self._get_group_offset(group_id)
-        while offset < max_offset:
-            response = self._request(endpoint='groups.getMembers', params={
-                'sort': 'id_desc',
-                'group_id': group_id,
-                'offset': offset * 1000,
-                'fields': 'last_seen, can_write_private_message',
-            }).json()['response']
+        while offset <= max_offset:
+            response = self._request(
+                endpoint='groups.getMembers',
+                params={
+                    'sort': 'id_desc',
+                    'group_id': group_id,
+                    'offset': offset * 1000,
+                    'fields': 'last_seen, can_write_private_message',
+                    'count': 1000,
+                }
+            ).json()['response']
             offset += 1
 
             if self.caching:
@@ -167,5 +174,3 @@ class VKSearcher(VKRequest):
         group_name = response[0].get('name')
 
         return group_name
-
-

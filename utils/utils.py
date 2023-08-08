@@ -2,7 +2,6 @@ import json
 from datetime import datetime
 
 from accounts.accounts import Account
-from utils.logger import logger
 
 
 def get_config(path: str) -> dict:
@@ -41,12 +40,12 @@ def split_accounts_in_objects_and_authorize(account_config: dict, account_type: 
 
         if account_object.is_blocked is True:
             account['is_blocked'] = True
-            logger.error(f"Аккаунт `{account_object.login}` заблокирован")
             continue
 
-        if account_object.access_token is not None and not account['access_token']:
+        if account_object.access_token is not None:
             account['access_token'] = account_object.access_token
 
+        account['is_blocked'] = account_object.is_blocked
         account_objects_list.append(account_object)
 
     return account_objects_list
@@ -67,8 +66,8 @@ def get_all_valid_users(users: dict) -> list:
     filtered_users = []
 
     for user in users['items']:
-        # 1672531201 = Январь 01 2023
-        if user.get('last_seen') is not None and user['last_seen']['time'] <= 1672531201:
+        # 1688241957 = Июль 01 2023
+        if user.get('last_seen') is not None and user['last_seen']['time'] <= 1688241957:
             continue
 
         if user.get('can_write_private_message') is not None and user['can_write_private_message'] == 1:
