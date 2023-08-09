@@ -26,13 +26,14 @@ class DBAccess:
     def __init__(self):
         self._session = get_db_session()
 
-    def add_user(self, vk_id, first_name, last_name, group_name) -> None:
+    def add_user(self, vk_id, first_name, last_name, group_name, group_url) -> None:
         with self._session as session:
             user = User(
                 vk_id=vk_id,
                 first_name=first_name,
                 last_name=last_name,
-                group_name=group_name
+                group_name=group_name,
+                group_url=group_url
             )
             session.add(user)
             session.commit()
@@ -43,7 +44,7 @@ class DBAccess:
             try:
                 if self.is_user_in_db(vk_id=user.vk_id):
                     continue
-                self.add_user(user.vk_id, user.first_name, user.last_name, user.group_name)
+                self.add_user(user.vk_id, user.first_name, user.last_name, user.group_name, user.group_url)
             except sqlalchemy.exc.SQLAlchemyError as err:
                 logger.error(f'Ошибка при добавлении нового пользователя {User} в базу данных: {err}')
 
@@ -70,14 +71,16 @@ class DBAccess:
             users = session.query(User).filter(User.is_received_message == 0).all()
         return users
 
-    def create_model_from_dict(self, vk_users: dict, group_name: str) -> list[User]:
+    @staticmethod
+    def create_model_from_dict(vk_users: dict, group_name: str, group_url: str) -> list[User]:
         users = []
         for user in vk_users:
             user_model = User(
                 vk_id=user['id'],
                 first_name=user['first_name'],
                 last_name=user['last_name'],
-                group_name=group_name
+                group_name=group_name,
+                group_url=group_url
             )
             users.append(user_model)
 

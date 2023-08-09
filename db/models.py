@@ -12,6 +12,7 @@ class User(Base):
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     group_name = Column(String, nullable=False)
+    group_url = Column(String, nullable=False)
     is_received_message = Column(Boolean, nullable=False, default=False)
 
     def __repr__(self):

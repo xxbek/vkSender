@@ -21,12 +21,13 @@ class RedisAccess:
                     "vk_id": user.vk_id,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
-                    "group_name": user.group_name
+                    "group_name": user.group_name,
+                    "group_url": user.group_url
                 }
-                self.redis.hset(name=user.vk_id, mapping=user_map)
+                self.redis.hset(name=f'{user.vk_id}-{user.group_url}', mapping=user_map)
 
-    def get_user_by_id(self, vk_id) -> dict | None:
-        user_in_cache = self.redis.hgetall(vk_id)
+    def get_user_by_id(self, vk_id, group_url) -> dict | None:
+        user_in_cache = self.redis.hgetall(f'{vk_id}-{group_url}')
 
         return user_in_cache
 
@@ -36,3 +37,4 @@ class RedisAccess:
 
     def count_cache_users(self):
         return self.redis.dbsize()
+

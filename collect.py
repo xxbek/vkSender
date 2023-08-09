@@ -21,8 +21,8 @@ parser.add_argument(
     help="Drop and update current cache"
 )
 args = parser.parse_args()
-cache = RedisAccess()
 
+cache = RedisAccess()
 if args.rebuild:
     cache.drop_all()
 
@@ -35,11 +35,9 @@ if __name__ == "__main__":
     manager = AccountManager(
         search_accounts=searcher_objects,
         messages_examples={},
-        settings=settings,
-
-        is_caching=True,
+        settings=settings
     )
-    manager.search_worker()
+    manager.dump_users_from_groups_in_cache()
     save_dump_date_in_config(settings)
     users_count = cache.count_cache_users()
     logger.info(f"Зафиксировано состояние групп (`{settings['last_cache_dump_date']}`), "

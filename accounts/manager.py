@@ -8,6 +8,8 @@ from utils.logger import logger
 from utils.utils import update_account_config_with_sent_messages_amount
 from vk_request.vk_request import VKWriter, VKSearcher
 
+from multiprocessing.dummy import Pool as ThreadPool
+
 
 class AccountManager:
     def __init__(
@@ -15,8 +17,7 @@ class AccountManager:
             messages_examples: dict,
             settings: dict,
             search_accounts: list[Account] = None,
-            write_accounts: list[Account] = None,
-            is_caching=False,
+            write_accounts: list[Account] = None
     ):
         self._db = DBAccess
         self._cache = RedisAccess()
@@ -32,20 +33,20 @@ class AccountManager:
         self._manager_url: str = settings['manager_url']
         self.message_limit = settings['message_limit_per_one_account']
 
-        self.is_caching: bool = is_caching
-
     def search_worker(self):
+        pool = ThreadPool(2)
+        pool.map(self.save_new_followers_from_group, self._groups)
+        pool.close()
+        pool.join()
+
+    def save_new_followers_from_group(self, group_id):
         db = self._db()
         account = random.choice(self._search_accounts)
-        searcher = self._searcher(db, RedisAccess(), account, delay=self._delay, caching=self.is_caching)
-        for vk_users, group_name in searcher.yield_users_from_groups(self._groups):
-            users = db.create_model_from_dict(vk_users, group_name)
-
-            if self.is_caching is True:
-                self._cache.save_users(users)
-            else:
-                db.add_users(users)
-                self._cache.save_users(users)
+        searcher = self._searcher(db, RedisAccess(), account, delay=self._delay)
+        new_followers, group_name = searcher.return_new_users_info_from_group(group_id)
+        users = db.create_model_from_dict(vk_users=new_followers, group_name=group_name, group_url=group_id)
+        db.add_users(users)
+        self._cache.save_users(users)
 
     def write_worker(self):
         db = self._db()
@@ -75,6 +76,20 @@ class AccountManager:
         self.reply_to_unwritten_messages(db)
 
         update_account_config_with_sent_messages_amount(self._write_accounts)
+
+    def dump_users_from_groups_in_cache(self):
+        pool = ThreadPool(2)
+        pool.map(self.dump_users_from_one_group, self._groups)
+        pool.close()
+        pool.join()
+
+    def dump_users_from_one_group(self, group_id: str):
+        db = self._db()
+        account = random.choice(self._search_accounts)
+        searcher = self._searcher(db, RedisAccess(), account, delay=self._delay, caching=True)
+        vk_users, group_name = searcher.return_dump_info_from_group(group_id)
+        users = db.create_model_from_dict(vk_users=vk_users, group_name=group_name, group_url=group_id)
+        self._cache.save_users(users)
 
     def reply_to_unwritten_messages(self, db):
         for account in self._write_accounts:

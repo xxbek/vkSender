@@ -116,15 +116,57 @@ class VKSearcher(VKRequest):
 
         return users // 1000
 
-    def yield_users_from_groups(self, group_list: list[str]) -> Generator:
-        for group in group_list:
-            group_name = self._get_group_name(group)
-            if group_name:
-                for users_from_group in self._yield_users_from_one_group(group):
-                    yield users_from_group, group_name
-                logger.info(f"Группа `{group}` была просканированна, найдено {len(users_from_group)} человек")
+    def return_new_users_info_from_group(self, group_id: str) -> (list[dict], str):
+        """Функция возвращает список новых подписчиков группы и название группы"""
+        group_name = self._get_group_name(group_id)
+        if group_name:
+            new_followers = self.get_new_followers_from_group(group_id)
+            logger.info(f"Группа `{group_name}` была просканированна, найдено {len(new_followers)} новых подписчиков")
+            return new_followers, group_name
 
-    def _yield_users_from_one_group(self, group_id) -> Generator:
+    def return_dump_info_from_group(self, group_id: str) -> (list[dict], str):
+        """Функция возвращает список всех подписчиков группы и название группы"""
+        group_name = self._get_group_name(group_id)
+        if group_name:
+            users_id = self.return_all_users_from_one_group(group_id)
+            dict_users = self._create_template_vk_dict(users_id, group_name)
+            logger.info(f"Группа `{group_name}` была просканированна, найдено {len(dict_users)} человек")
+            return dict_users, group_name
+
+    def return_all_users_from_one_group(self, group_id) -> list[int]:
+        all_users = []
+        offset = 0
+        max_offset = self._get_group_offset(group_id)
+        while offset <= max_offset:
+            response = self._request(
+                endpoint='groups.getMembers',
+                params={
+                    'sort': 'id_desc',
+                    'group_id': group_id,
+                    'offset': offset * 1000,
+                    'count': 1000,
+                }
+            ).json()['response']
+            offset += 1
+
+            users_pool: list = response['items']
+            all_users.extend(users_pool)
+
+        return all_users
+
+    def _create_template_vk_dict(self, users_id: list[int], group_name: str) -> list[dict]:
+        users_dict = []
+        for vk_id in users_id:
+            user = {
+                'id': vk_id,
+                'first_name': "TEMPLATE FIRST NAME",
+                'last_name': "TEMPLATE LAST NAME",
+                'group_name': group_name,
+            }
+            users_dict.append(user)
+        return users_dict
+
+    def get_new_followers_from_group(self, group_id) -> list[dict]:
         filtered_users = []
         offset = 0
         max_offset = self._get_group_offset(group_id)
@@ -141,21 +183,17 @@ class VKSearcher(VKRequest):
             ).json()['response']
             offset += 1
 
-            if self.caching:
-                all_valid_user: list = get_all_valid_users(response)
-                filtered_users.extend(all_valid_user)
-            else:
-                all_valid_user: list = get_all_valid_users(response)
-                new_users = self.get_new_users(all_valid_user)
-                filtered_users.extend(new_users)
+            valid_followers: list = get_all_valid_users(response)
+            new_followers = self.get_unique_users_compared_cache(valid_followers, group_id)
+            filtered_users.extend(new_followers)
 
-        yield filtered_users
+        return filtered_users
 
-    def get_new_users(self, all_users):
+    def get_unique_users_compared_cache(self, all_users: list[dict], group_url: str):
         new_users = []
 
         for user in all_users:
-            if not self.cache.get_user_by_id(user['id']):
+            if not self.cache.get_user_by_id(user['id'], group_url=group_url):
                 new_users.append(user)
 
         return new_users
