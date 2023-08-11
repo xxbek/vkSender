@@ -1,13 +1,12 @@
-import time
+from time import sleep
 
+import db.db
 from accounts.manager import AccountManager
 from utils.logger import logger
 from utils.utils import get_config, split_accounts_in_objects_and_authorize, \
     update_account_config
 
-
-if __name__ == "__main__":
-
+def _main():
     accounts, settings, messages = map(get_config, ['accounts.json', 'config.json', 'messages.json'])
     searcher_objects = split_accounts_in_objects_and_authorize(accounts, 'searchers')
     writer_accounts = split_accounts_in_objects_and_authorize(accounts, 'writers')
@@ -20,23 +19,23 @@ if __name__ == "__main__":
         settings=settings
     )
 
+    manager.search_worker()
+    # manager.write_worker()
+    logger.info("Цикл воркеров завершен")
+
+
+if __name__ == "__main__":
     while True:
-        manager.search_worker()
-        manager.write_worker()
-        logger.info("Цикл завершен")
-        time.sleep(10)
+        _main()
+        sleep(10)
 
 
 
-# TODO # 2) Агрегатор для сообщений пользователям - распределить и зарандомить
-# TODO # 3) Достать название групп и вставить их в БД
-# 4++) Неправильно работает фильтр (пустил чела с закрытой личкой), неправильно работает поиск подписчиков (пустил челов которые были подписаны давно)
 # 4) Сделать cli для добавления группы к мониторингу, для обнуления отправленных сообщений - раз в сутки
 # 5) Добавить проксирование к запросам к вк
 # 5++) Добавить schedule к скрипту
 # 6) Распаралелить работу скрипта
 # 6++) Рефакторинг
-# TODO # 7) Добавить родителький класс для vkreq
 # 8) Добавить модульное тестирование
 # 9) Оформить проект к выводу в прод
 # 10) Затестить проект на боевых данных

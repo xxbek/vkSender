@@ -4,7 +4,7 @@ import logging
 def get_logger(
         log_format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
         log_name='',
-        log_file_info  ='info.log',
+        log_file_info='info.log',
         log_file_error ='error.log',
         datefmt='%Y-%m-%d %H:%M:%S'):
 

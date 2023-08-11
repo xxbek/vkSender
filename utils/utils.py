@@ -1,4 +1,5 @@
 import json
+import time
 from datetime import datetime
 
 from accounts.accounts import Account
@@ -63,15 +64,31 @@ def from_date_to_unix_timestamp(date: str):
 
 
 def get_all_valid_users(users: dict) -> list:
+    """Функция, фильтрующая список пользователей по заданным критериям"""
     filtered_users = []
 
+    user_filter_time = datetime(year=2023, month=8, day=10)
+    unixtime = time.mktime(user_filter_time.timetuple())
+
+    user_birthday_mask = '%d.%m.%Y'
+
     for user in users['items']:
-        # 1688241957 = Июль 01 2023
-        if user.get('last_seen') is not None and user['last_seen']['time'] <= 1688241957:
+        # Фильтрация на дату последнего посещения ВК
+        if user.get('last_seen') is not None and user['last_seen']['time'] <= unixtime:
             continue
 
-        if user.get('can_write_private_message') is not None and user['can_write_private_message'] == 1:
-            filtered_users.append(user)
+        # Фильтрация на возвраст
+        if user.get('bdate') is not None and len(user['bdate']) > 5:
+            birth_day = user['bdate']
+            user_birth_year = datetime.strptime(birth_day, user_birthday_mask).year
+            if user_birth_year > 2005:
+                continue
+
+        # Фильтрация на возможность написать личное сообщение
+        if user.get('can_write_private_message') is not None and user['can_write_private_message'] == 0:
+            continue
+
+        filtered_users.append(user)
 
     return filtered_users
 

@@ -16,7 +16,7 @@ class RedisAccess:
 
     def save_users(self, users: list[User]) -> None:
         for user in users:
-            if not self.redis.hgetall(user.vk_id):
+            if not self.redis.hgetall(f'{user.vk_id}-{user.group_url}'):
                 user_map = {
                     "vk_id": user.vk_id,
                     "first_name": user.first_name,
@@ -25,6 +25,8 @@ class RedisAccess:
                     "group_url": user.group_url
                 }
                 self.redis.hset(name=f'{user.vk_id}-{user.group_url}', mapping=user_map)
+
+
 
     def get_user_by_id(self, vk_id, group_url) -> dict | None:
         user_in_cache = self.redis.hgetall(f'{vk_id}-{group_url}')

@@ -73,28 +73,31 @@ class AccountManager:
             writer.write_to_the_user(user, message, is_it_first_message=True)
             messages_need_to_send = len(users)
 
-        self.reply_to_unwritten_messages(db)
+        self.reply_to_all_unwritten_messages(db)
 
         update_account_config_with_sent_messages_amount(self._write_accounts)
 
     def dump_users_from_groups_in_cache(self):
         pool = ThreadPool(2)
-        pool.map(self.dump_users_from_one_group, self._groups)
+        result = pool.map(self.dump_users_from_one_group, self._groups)
         pool.close()
         pool.join()
+        return sum(result)
 
-    def dump_users_from_one_group(self, group_id: str):
+    def dump_users_from_one_group(self, group_id: str) -> int:
         db = self._db()
         account = random.choice(self._search_accounts)
         searcher = self._searcher(db, RedisAccess(), account, delay=self._delay, caching=True)
         vk_users, group_name = searcher.return_dump_info_from_group(group_id)
         users = db.create_model_from_dict(vk_users=vk_users, group_name=group_name, group_url=group_id)
         self._cache.save_users(users)
+        return len(users)
 
-    def reply_to_unwritten_messages(self, db):
+    def reply_to_all_unwritten_messages(self, db):
         for account in self._write_accounts:
             writer = self._writer(db, self._cache, account, delay=self._delay)
-            reply_message = random.choice(self.messages_examples['second_messages']).format(manager=self._manager_url)
+            message_template = random.choice(self.messages_examples['second_messages'])
+            reply_message = message_template.format(manager=self._manager_url)
             writer.reply_to_unwritten_messages(reply_message)
 
     def _get_random_valid_account(self) -> Account:

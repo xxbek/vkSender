@@ -37,10 +37,10 @@ if __name__ == "__main__":
         messages_examples={},
         settings=settings
     )
-    manager.dump_users_from_groups_in_cache()
+    user_founded = manager.dump_users_from_groups_in_cache()
     save_dump_date_in_config(settings)
     users_count = cache.count_cache_users()
     logger.info(f"Зафиксировано состояние групп (`{settings['last_cache_dump_date']}`), "
                 f"по которому будет происходить поиск новых подписчиков: \n"
-                f"`{users_count}` пользователей из групп `{', '.join(settings['groups'])}` добавлено в кэш.")
+                f"`{users_count} уникальных (всего {user_founded})` пользователей из групп `{', '.join(settings['groups'])}` добавлено в кэш.")
 

@@ -61,7 +61,8 @@ class VKWriter(VKRequest):
         error = response.json().get('error')
         if error:
             logger.error(
-                f"Не удалось отправить сообщение пользователю {user.vk_id} из аккаунта {self._account}: {error['error_msg']}")
+                f"Не удалось отправить сообщение пользователю {user.vk_id} из аккаунта {self._account}: {error['error_msg']}"
+            )
             if error.get('ban_info'):
                 self._account.is_blocked = True
             return
@@ -69,7 +70,7 @@ class VKWriter(VKRequest):
         logger.info(f"Сообщение было отправлено пользователю {user.vk_id} из аккаунта {self._account.login}")
 
         self._db.change_user_message_status(user.vk_id)
-        self._account.messages_written += 1
+        self._account.messages_written += 1 if is_it_first_message else 0
 
     def reply_to_unwritten_messages(self, second_messages: str):
         response = self._request(
@@ -146,9 +147,15 @@ class VKSearcher(VKRequest):
                     'offset': offset * 1000,
                     'count': 1000,
                 }
-            ).json()['response']
+            ).json()
             offset += 1
 
+            if response.get('error'):
+                err_message = response.get('error').get('error_msg')
+                logger.error(f'Ошибка при поиске пользователей в группе `{group_id}`: {err_message}')
+                return []
+
+            response = response.get('response')
             users_pool: list = response['items']
             all_users.extend(users_pool)
 
@@ -177,7 +184,7 @@ class VKSearcher(VKRequest):
                     'sort': 'id_desc',
                     'group_id': group_id,
                     'offset': offset * 1000,
-                    'fields': 'last_seen, can_write_private_message',
+                    'fields': 'last_seen, can_write_private_message, bdate',
                     'count': 1000,
                 }
             ).json()['response']
@@ -190,6 +197,7 @@ class VKSearcher(VKRequest):
         return filtered_users
 
     def get_unique_users_compared_cache(self, all_users: list[dict], group_url: str):
+        """Функция, проверяющая, есть ли данный пользователь в кэше"""
         new_users = []
 
         for user in all_users:
