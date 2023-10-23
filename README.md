@@ -1,28 +1,22 @@
 # vkSender
 Interface for interacting with the social network VK
 
-alembic init alembic
+## Запуск кеша Redis и Mongo: 
+> docker compose ud -d
 
+(или локально установить)
 
-- alembic.ini
+- Перед запуском необходимо отключить двухфакторную аутентификацию для search/write аккаунтов
 
-add url in alembic.ini  `sqlalchemy.url = sqlite:///db.sqlite`
+Запуск окружения и установка зависимостей:
+> python -m venv venv 
 
-- env.py: 
+> pip install -r requirement
 
-target_metadata = None
+> source venv/bin/activate
 
-исправить
+Сбор юзеров в кэш:
+> python collect.py (-b для удаления предыдущего кэша)
 
-from db.models import Base
-target_metadata = Base.metadata
-
-на
-
-alembic revision --autogenerate -m "first migrations"
-
-alembic upgrade heads
-
-
--- Отключить двухфакторную аутентификацию
-
+Запуск search/write воркеров:
+> python run.py

@@ -1,35 +1,33 @@
-import json
 import time
-from typing import Generator
 
 import requests
 from requests import Response, Session
 
 from accounts.accounts import Account
-from db.db import DBAccess
-from db.models import User
+from config.config import get_config
+from db.mongo import MongoConnector
 from db.redis_db import RedisAccess
 from utils.logger import logger
-from utils.utils import get_all_valid_users
+from utils.filter import get_all_valid_users
+
+
+config = get_config()
 
 
 class VKRequest:
-    def __init__(self, db: DBAccess, cache: RedisAccess, account: Account, delay=1):
-        self._db = db
-        self.cache = cache
+    def __init__(self, account: Account):
+        _db = MongoConnector.get_instance()
+        self._user_db = _db.user_connector
+        self._info_db = _db.info_connector
+        self.cache = RedisAccess.get_instance()
         self._account = account
-        self.delay = delay
+        self.delay = config.get('seconds_delay_between_program_request')
         self.session = Session()
 
     def sleep(self):
         time.sleep(self.delay)
 
     def _request(self, endpoint, params=None) -> Response:
-        # session = Session()
-        # session.proxies = {'http': 'http://127.0.0.1:8000'}
-        # session.proxies.update({'http': 'socks5://user:password@127.0.0.1:8000'})
-        # or just
-        # proxies = { 'https' : 'https://user:password@proxyip:port' }
         default_params = {
             'access_token': self._account.access_token,
             'v': 5.103,
@@ -38,21 +36,22 @@ class VKRequest:
         default_params.update(params)
         response = requests.get(
             f'https://api.vk.com/method/{endpoint}',
-            params=default_params
+            params=default_params,
+            proxies=self._account.proxy
         )
         self.sleep()
         return response
 
 
 class VKWriter(VKRequest):
-    def __init__(self, db: DBAccess, cache: RedisAccess, account: Account, delay=1):
-        super().__init__(db, cache, account, delay)
+    def __init__(self, account: Account):
+        super().__init__(account)
 
-    def write_to_the_user(self, user: User, message: str, is_it_first_message=True):
+    def write_to_the_user(self, user: dict, message: str, is_it_first_message=True):
         response = self._request(
             endpoint='messages.send',
             params={
-                'user_id': user.vk_id,
+                'user_id': user.get('vk_id'),
                 'random_id': 1 if is_it_first_message else 2,
                 'message': message,
                 'dont_parse_links': 0
@@ -61,15 +60,15 @@ class VKWriter(VKRequest):
         error = response.json().get('error')
         if error:
             logger.error(
-                f"Не удалось отправить сообщение пользователю {user.vk_id} из аккаунта {self._account}: {error['error_msg']}"
+                f"Не удалось отправить сообщение пользователю {user.get('vk_id')} из аккаунта {self._account}: {error['error_msg']}"
             )
             if error.get('ban_info'):
                 self._account.is_blocked = True
             return
 
-        logger.info(f"Сообщение было отправлено пользователю {user.vk_id} из аккаунта {self._account.login}")
+        logger.info(f"Сообщение было отправлено пользователю {user.get('vk_id')} из аккаунта {self._account.login}")
 
-        self._db.change_user_message_status(user.vk_id)
+        self._user_db.change_user_message_status(user.get('vk_id'))
         self._account.messages_written += 1 if is_it_first_message else 0
 
     def reply_to_unwritten_messages(self, second_messages: str):
@@ -88,14 +87,14 @@ class VKWriter(VKRequest):
 
         for conversation in conversations:
             user_id = conversation['last_message']['from_id']
-            user = self._db.get_user_by_vk_id(user_id)
+            user = self._user_db.get_user_by_vk_id(user_id)
             if user:
                 self.write_to_the_user(user, second_messages, is_it_first_message=False)
 
 
 class VKSearcher(VKRequest):
-    def __init__(self, db: DBAccess, cache: RedisAccess, account: Account, delay=1, caching=False):
-        super().__init__(db, cache, account, delay)
+    def __init__(self, account: Account, caching=False):
+        super().__init__(account)
         self.caching = caching
 
     def _get_group_offset(self, group_id):
@@ -190,7 +189,10 @@ class VKSearcher(VKRequest):
             ).json()['response']
             offset += 1
 
-            valid_followers: list = get_all_valid_users(response)
+            valid_followers: list = get_all_valid_users(
+                users=response,
+                last_online_unix_time_filter=self._info_db.get_last_cache_dump_date_unix()
+            )
             new_followers = self.get_unique_users_compared_cache(valid_followers, group_id)
             filtered_users.extend(new_followers)
 

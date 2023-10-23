@@ -1,46 +1,44 @@
 from time import sleep
 
-import db.db
+from accounts.accounts import AccountBuilder
 from accounts.manager import AccountManager
+from config.config import get_config
+from db.mongo import MongoConnector
 from utils.logger import logger
-from utils.utils import get_config, split_accounts_in_objects_and_authorize, \
-    update_account_config
+
+
+DB = MongoConnector.get_instance()
+SETTING = get_config()
+
 
 def _main():
-    accounts, settings, messages = map(get_config, ['accounts.json', 'config.json', 'messages.json'])
-    searcher_objects = split_accounts_in_objects_and_authorize(accounts, 'searchers')
-    writer_accounts = split_accounts_in_objects_and_authorize(accounts, 'writers')
-    update_account_config(accounts)
+    searchers, writers = DB.account_connector.get_searchers(), DB.account_connector.get_writers()
+    builder = AccountBuilder(searchers_account=searchers, writers_account=writers)
+    builder.build_accounts()
+    searchers_accounts, writers_accounts = builder.get_build_searchers(), builder.get_build_writers()
 
     manager = AccountManager(
-        search_accounts=searcher_objects,
-        write_accounts=writer_accounts,
-        messages_examples=messages,
-        settings=settings
+        search_accounts=searchers_accounts,
+        write_accounts=writers_accounts,
+        settings=SETTING
     )
 
     manager.search_worker()
-    # manager.write_worker()
-    logger.info("Цикл воркеров завершен")
+    manager.write_worker()
+    DB.account_connector.remove_blocked_accounts()
+    logger.info("Цикл программы завершен")
 
 
 if __name__ == "__main__":
     while True:
         _main()
-        sleep(10)
+        # Задержка между циклами search/write
+        sleep(SETTING.get('minutes_delay_between_program_cycle') * 60)
 
-
-
-# 4) Сделать cli для добавления группы к мониторингу, для обнуления отправленных сообщений - раз в сутки
-# 5) Добавить проксирование к запросам к вк
+# 4) Сделать cli для добавления группы к мониторингу,
+# 4++) обнуление отправленных сообщений - раз в сутки
 # 5++) Добавить schedule к скрипту
-# 6) Распаралелить работу скрипта
+# 6) Распаралелить работу скрипта для воркеров и сечеров
 # 6++) Рефакторинг
-# 8) Добавить модульное тестирование
-# 9) Оформить проект к выводу в прод
 # 10) Затестить проект на боевых данных
-# 11) Перенести все в Монгу и производить поиск тогда, когда число подписчиков в группе изменилось
-
-
-# 12) Сделать отдельный класс/метод для кеширования одной группы, где будут сохраняться абсолютно все аккаунты
 

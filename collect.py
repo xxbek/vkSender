@@ -5,12 +5,12 @@
 
 import argparse
 
+from accounts.accounts import AccountBuilder
 from accounts.manager import AccountManager
+from db.mongo import MongoConnector
 from db.redis_db import RedisAccess
 from utils.logger import logger
-from utils.utils import get_config, split_accounts_in_objects_and_authorize, \
-    update_account_config, save_dump_date_in_config
-
+from config.config import get_config
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -22,25 +22,27 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
-cache = RedisAccess()
+DB = MongoConnector.get_instance()
+SETTING = get_config()
+CACHE = RedisAccess.get_instance()
 if args.rebuild:
-    cache.drop_all()
+    CACHE.drop_all()
 
 if __name__ == "__main__":
-    accounts, settings = map(get_config, ['accounts.json', 'config.json'])
-
-    searcher_objects = split_accounts_in_objects_and_authorize(accounts, 'searchers')
-    update_account_config(accounts)
+    settings = get_config()
+    searchers = DB.account_connector.get_searchers()
+    builder = AccountBuilder(searchers_account=searchers)
+    builder.build_accounts()
+    searchers_accounts = builder.get_build_searchers()
 
     manager = AccountManager(
-        search_accounts=searcher_objects,
-        messages_examples={},
+        search_accounts=searchers_accounts,
         settings=settings
     )
     user_founded = manager.dump_users_from_groups_in_cache()
-    save_dump_date_in_config(settings)
-    users_count = cache.count_cache_users()
-    logger.info(f"Зафиксировано состояние групп (`{settings['last_cache_dump_date']}`), "
+    DB.info_connector.save_last_dump_date()
+    all_users_in_cache = CACHE.count_cache_users()
+    logger.info(f"Зафиксировано состояние групп (`{DB.info_connector.get_last_cache_dump_date_readable()}`), "
                 f"по которому будет происходить поиск новых подписчиков: \n"
-                f"`{users_count} уникальных (всего {user_founded})` пользователей из групп `{', '.join(settings['groups'])}` добавлено в кэш.")
+                f"`{user_founded} новых (всего {all_users_in_cache})` пользователей из групп `{', '.join(settings['groups'])}` добавлено в кэш.")
 

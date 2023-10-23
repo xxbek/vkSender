@@ -1,22 +1,38 @@
 import redis
 
-from db.models import User
+from config.config import get_config
+from db.model import UserModel
 from utils.logger import logger
 
-REDIS = "redis://localhost:6379"
+config: dict = get_config()
 
 
 class RedisAccess:
-    def __init__(self):
-        try:
-            self.redis = redis.StrictRedis.from_url(REDIS, decode_responses=True)
-            logger.info(f'Connected to database on: {REDIS}')
-        except Exception as e:
-            logger.error(f'Error while connecting to database: {e}')
+    __instance = None
 
-    def save_users(self, users: list[User]) -> None:
+    def __init__(self):
+        if RedisAccess.__instance is not None:
+            raise Exception("This redis class is a singleton!")
+        else:
+            RedisAccess.__instance = Redis()
+            logger.info(f'Connected to database on: {config.get("redis_uri")}')
+
+    @staticmethod
+    def get_instance():
+        if RedisAccess.__instance is None:
+            RedisAccess()
+        return RedisAccess.__instance
+
+
+class Redis:
+    def __init__(self):
+        self._connection = redis.StrictRedis.from_url(config.get('redis_uri'), decode_responses=True)
+        logger.info(f'Connected to database on: {config.get("redis_uri")}')
+
+    def save_users(self, users: list[UserModel]) -> int:
+        new_users_amount = 0
         for user in users:
-            if not self.redis.hgetall(f'{user.vk_id}-{user.group_url}'):
+            if not self._connection.hgetall(f'{user.vk_id}-{user.group_url}'):
                 user_map = {
                     "vk_id": user.vk_id,
                     "first_name": user.first_name,
@@ -24,19 +40,19 @@ class RedisAccess:
                     "group_name": user.group_name,
                     "group_url": user.group_url
                 }
-                self.redis.hset(name=f'{user.vk_id}-{user.group_url}', mapping=user_map)
-
-
+                self._connection.hset(name=f'{user.vk_id}-{user.group_url}', mapping=user_map)
+                new_users_amount += 1
+        return new_users_amount
 
     def get_user_by_id(self, vk_id, group_url) -> dict | None:
-        user_in_cache = self.redis.hgetall(f'{vk_id}-{group_url}')
+        user_in_cache = self._connection.hgetall(f'{vk_id}-{group_url}')
 
         return user_in_cache
 
     def drop_all(self):
         logger.info(f"Кэш с пользователями был очищен")
-        self.redis.flushall()
+        self._connection.flushall()
 
     def count_cache_users(self):
-        return self.redis.dbsize()
+        return self._connection.dbsize()
 

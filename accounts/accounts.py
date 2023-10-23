@@ -6,12 +6,29 @@ from requests import Session
 
 from utils.logger import logger
 
+from db.mongo import MongoConnector
+
+
+db = MongoConnector.get_instance()
+
 
 class Account:
-    def __init__(self, login: str, password: str, proxy: dict, access_token=None, messages_written=0, is_blocked=False):
+    def __init__(
+            self,
+            login: str,
+            password: str,
+            proxy_ip: str,
+            proxy_port: str,
+            proxy_login: str,
+            proxy_pass: str,
+            is_blocked: bool,
+            access_token: str,
+            messages_written: int = 0,
+    ):
         self.login = login
         self.password = password
-        self.proxy = proxy
+        self.proxy = {'http': f'socks5://{proxy_login}:{proxy_pass}@{proxy_ip}:{proxy_port}'}
+
         self.messages_written = messages_written
         self.access_token = self._check_access_token(access_token)
         self.is_authenticated = True if self.access_token else False
@@ -41,7 +58,19 @@ class Account:
 
         return access_token
 
-    def set_access_token_from_vk(self):
+    def _get_vk(self):
+        session = Session()
+        session.proxies.update(self.proxy)
+        return vk_api.VkApi(
+            self.login,
+            self.password,
+            # app_id = 6222115
+            app_id=2685278,
+            captcha_handler=_captcha_handler,
+            # session=session
+        )
+
+    def _set_access_token_from_vk(self):
         """
         Получение токена через логин и пароль.
         У пользователя должна отсутствовать двухфактораня аутентификация, иначе требуется
@@ -54,16 +83,13 @@ class Account:
 
         # pip install pysocks
         # session.proxies.update({'http': 'socks5://user:password@127.0.0.1:8000'})
+        # session = Session()
+        # session.proxies.update(
+        #
+        # )
 
         try:
-            account = vk_api.VkApi(
-                self.login,
-                self.password,
-                # app_id = 6222115
-                app_id=2685278,
-                captcha_handler=captcha_handler,
-                # session=session
-            )
+            account = self._get_vk()
             account.auth()
             account_api = account.get_api()
         except vk_api.AuthError as error_msg:
@@ -88,13 +114,13 @@ class Account:
             self.access_token = access_token
 
 
-def captcha_handler(captcha):
+def _captcha_handler(captcha):
     key = input("Введите код из капчи по ссылке {0}: ".format(captcha.get_url())).strip()
 
     return captcha.try_again(key)
 
 
-def auth_handler():
+def _auth_handler():
     """ При двухфакторной аутентификации вызывается эта функция.
     """
 
@@ -104,3 +130,31 @@ def auth_handler():
     remember_device = True
 
     return key, remember_device
+
+
+class AccountBuilder:
+    def __init__(self, searchers_account: list[dict] = None, writers_account: list[dict] = None):
+        self.searchers_account = [Account(**searcher) for searcher in searchers_account or []]
+        self.writers_account = [Account(**writer) for writer in writers_account or []]
+
+    def build_accounts(self) -> None:
+        for account in self.searchers_account + self.writers_account:
+            db.account_connector.save_access_token(account.login, 'temp_token')
+
+            if not account.is_authenticated:
+                account._set_access_token_from_vk()
+
+            if account.is_blocked is True:
+                logger.error(f'Аккаунт {account} был заблокирован')
+                continue
+            db.account_connector.save_access_token(account.login, account.access_token)
+
+    def get_build_writers(self) -> list[Account]:
+        if not self.writers_account:
+            raise Exception('No writers provided!')
+        return self.writers_account
+
+    def get_build_searchers(self) -> list[Account]:
+        if not self.searchers_account:
+            raise Exception('No searchers provided!')
+        return self.searchers_account

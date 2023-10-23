@@ -5,7 +5,7 @@ volumes:
 
 services:
   redis:
-    image: redis:6.2-alpine
+    image: redis:7
     volumes:
       - redis_volume:/data
     restart: always
