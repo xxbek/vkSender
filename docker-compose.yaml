@@ -2,8 +2,17 @@ version: '3.8'
 
 volumes:
   redis_volume:
+  db:
 
 services:
+  mongo:
+    image: 'mongo:6'
+    restart: unless-stopped
+    ports:
+      - 27017:27017
+    volumes:
+      - db:/data/db
+
   redis:
     image: redis:7
     volumes:
